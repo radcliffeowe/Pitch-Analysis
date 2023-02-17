@@ -11,8 +11,10 @@ import seaborn as sns
 from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_samples, silhouette_score
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 
-df = pand.read_excel('Live_Feb12.xlsx', usecols="N:O", skiprows=4)
+pitch_data = pand.read_excel('Live_Feb12.xlsx', usecols="B:U")
 
 def plot_pitches(dataframe, title):
     groups = dataframe.groupby('Pitch Type')
@@ -28,23 +30,49 @@ def plot_pitches(dataframe, title):
     plt.title(title)
     plt.show()
 
-#plot_pitches(df, "Raw Pitch Break Data Visualization")
+#plot_pitches(pitch_data, "Raw Pitch Break Data Visualization")
 
-X_std = StandardScaler().fit_transform(df)
-km = KMeans(n_clusters=4, max_iter=500)
-km.fit(X_std)
-centroids = km.cluster_centers_
+def pitch_type_clustering_three(pitch_data):
+    three_feature = pitch_data.filter(['Velocity', 'HB (trajectory)', 'VB (trajectory)'])
+    km_three = KMeans(n_clusters = 4, init = 'k-means++', random_state = 42)
+    y = km_three.fit_predict(three_feature)
+    print(y)
 
-fig, ax = plt.subplots(figsize = (6,6))
-plt.scatter(X_std[km.labels_ == 0, 0], X_std[km.labels_ == 0, 1], c = 'green', label = 'cluster 1')
-plt.scatter(X_std[km.labels_ == 1, 0], X_std[km.labels_ == 1, 1], c = 'blue', label = 'cluster 2')
-plt.scatter(X_std[km.labels_ == 2, 0], X_std[km.labels_ == 2, 1], c = 'grey', label = 'cluster 3')
-plt.scatter(X_std[km.labels_ == 3, 0], X_std[km.labels_ == 3, 1], c = 'black', label = 'cluster 4')
-plt.scatter(centroids[:, 0], centroids[:, 1], marker = '*', s = 300, c = 'r', label = 'centroid')
+    pitch_data['Cluster'] = y
+    print(pitch_data)
 
-plt.legend()
-plt.xlabel('Normalized horizontal break (trajectory)')
-plt.ylabel('Normalized vertical break (trajectory)')
-plt.title('Visualization of clustered data', fontweight='bold')
-ax.set_aspect('equal')
-plt.show()
+    c1 = pitch_data[pitch_data.Cluster == 0]
+    c2 = pitch_data[pitch_data.Cluster == 1]
+    c3 = pitch_data[pitch_data.Cluster == 2]
+    c4 = pitch_data[pitch_data.Cluster == 3]
+
+    kplot = plt.axes(projection='3d')
+    xline = np.linspace(0, 15, 1000)
+    yline = np.linspace(0, 15, 1000)
+    zline = np.linspace(0, 15, 1000)
+    kplot.plot3D(xline, yline, zline, 'black')
+    # Data for three-dimensional scattered points
+    kplot.scatter3D(c1['Velocity'], c1['HB (trajectory)'], c1['VB (trajectory)'], c='red', label = 'Cluster 1')
+    kplot.scatter3D(c2['Velocity'], c2['HB (trajectory)'], c2['VB (trajectory)'],c ='green', label = 'Cluster 2')
+    kplot.scatter3D(c3['Velocity'], c3['HB (trajectory)'], c3['VB (trajectory)'], c='blue', label = 'Cluster 3')
+    kplot.scatter3D(c4['Velocity'], c4['HB (trajectory)'], c4['VB (trajectory)'],c ='black', label = 'Cluster 4')
+    plt.scatter(km_three.cluster_centers_[:,0], km_three.cluster_centers_[:,1], color = 'indigo', s = 200)
+    plt.legend()
+    plt.xlabel('Velocity')
+    plt.ylabel('Normalized horizontal break (trajectory)')
+    plt.clabel('Normalized vertical break (trajectory)')
+    plt.title("Pitch Type Clusters")
+    plt.show()
+
+def pitch_type_knn(pitch_data):
+    X = pitch_data.drop(columns = ['Pitch Type'])
+    Y = pitch_data['Pitch Type'].values
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1, stratify=Y)
+    knn = KNeighborsClassifier(n_neighbors=3)
+    knn.fit(X_train, Y_train)
+    print(X_test)
+    print(knn.predict(X_test))
+    print(knn.score(X_test, Y_test))
+
+data = pitch_data.filter(['Pitch Type', 'Velocity', 'HB (trajectory)', 'VB (trajectory)'])
+pitch_type_knn(data)
