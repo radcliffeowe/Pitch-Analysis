@@ -64,15 +64,34 @@ def pitch_type_clustering_three(pitch_data):
     plt.title("Pitch Type Clusters")
     plt.show()
 
-def pitch_type_knn(pitch_data):
-    X = pitch_data.drop(columns = ['Pitch Type'])
-    Y = pitch_data['Pitch Type'].values
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1, stratify=Y)
-    knn = KNeighborsClassifier(n_neighbors=3)
-    knn.fit(X_train, Y_train)
-    print(X_test)
-    print(knn.predict(X_test))
-    print(knn.score(X_test, Y_test))
+class Pitch_Type_Class:
+
+    def __init__(self, pitch_data):
+        self.pitch_data = pitch_data 
+        X = pitch_data.drop(columns = ['Pitch Type'])
+        Y = pitch_data['Pitch Type'].values
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1, stratify=Y)
+        self.knn = KNeighborsClassifier(n_neighbors=3)
+        self.knn.fit(X_train, Y_train)
+
+    def pitch_type_knn(self, pitch_data):
+        X = pitch_data.drop(columns = ['Pitch Type'])
+        Y = pitch_data['Pitch Type'].values
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1, stratify=Y)
+        knn = KNeighborsClassifier(n_neighbors=3)
+        knn.fit(X_train, Y_train)
+        print(X_test)
+        print(knn.predict(X_test))
+        print(knn.score(X_test, Y_test))
+    
+    def predict(self, dataset):
+        pitch_types = self.knn.predict(dataset)
+        dataset['Pitch Type'] = pitch_types.tolist()
+        print(dataset)
+
 
 data = pitch_data.filter(['Pitch Type', 'Velocity', 'HB (trajectory)', 'VB (trajectory)'])
-pitch_type_knn(data)
+pitch_class = Pitch_Type_Class(data)
+#pitch_class.pitch_type_knn(data)
+pitch_class.predict(pitch_data.filter(['Velocity', 'HB (trajectory)', 'VB (trajectory)']))
+
